@@ -19,7 +19,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## In Progress
 
-- None yet.
+- Project Dialogs & Editor Home: Implementing '/editor' home view, mock project list and actions (create, rename, delete) with dialogs and custom hooks.
 
 ## Next Up
 

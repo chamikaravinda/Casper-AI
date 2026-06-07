@@ -1,8 +1,11 @@
+@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@tailwind base;
+@source ".";
+@source "../components";
 
+@tailwind base;
 @custom-variant dark (&:is(.dark *));
 @tailwind components;
 @tailwind utilities;
@@ -59,7 +62,9 @@
 }
 
 @layer base {
-  :root, .dark {
+
+  :root,
+  .dark {
     --bg-base: #080809;
     --bg-surface: #111114;
     --bg-elevated: #18181c;
@@ -87,6 +92,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

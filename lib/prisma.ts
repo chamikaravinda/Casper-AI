@@ -9,11 +9,11 @@ const globalForPrisma = globalThis as unknown as {
 
 const databaseUrl = process.env.DATABASE_URL || "";
 
-function createPrismaInstance() {
+function createPrismaInstance(): PrismaClient {
   if (databaseUrl.startsWith("prisma+postgres://")) {
     return new PrismaClient({
       accelerateUrl: databaseUrl,
-    }).$extends(withAccelerate());
+    }).$extends(withAccelerate()) as unknown as PrismaClient;
   } else {
     const pool = new Pool({
       connectionString: databaseUrl,

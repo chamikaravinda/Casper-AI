@@ -4,7 +4,7 @@ import { Folder, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { Project } from "@/hooks/use-project-dialogs";
+import { Project } from "@/hooks/use-project-actions";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProjectSidebarProps {

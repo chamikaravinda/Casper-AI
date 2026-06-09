@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Project, DialogType } from "@/hooks/use-project-dialogs";
+import { Project, DialogType } from "@/hooks/use-project-actions";
 import { Loader2 } from "lucide-react";
 
 interface ProjectDialogsProps {

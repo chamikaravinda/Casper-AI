@@ -20,13 +20,12 @@ Update this file whenever the current phase, active feature, or implementation s
 - 05-prisma.md: Implemented the schema models for Project (owner ID, name, status enum, description, canvasJsonPath, and timestamps) and ProjectCollaborator (unique project/email constraint and cascade deletes) in `prisma/models/project.prisma` using Prisma's multi-file schema feature. Configured `prisma.config.ts` to scan the schema directory. Created a cached Prisma Client singleton in `lib/prisma.ts` that dynamically branches based on the database URL (using `@prisma/extension-accelerate` for `prisma+postgres://` URLs and `@prisma/adapter-pg` with connection pooling for direct PostgreSQL URLs). Generated the client and successfully deployed database migrations with zero TypeScript or build errors.
 - 06-project-apis.md: Implemented project API REST endpoints for listing (`GET /api/projects`), creating (`POST /api/projects`), renaming (`PATCH /api/projects/[projectId]`), and deleting (`DELETE /api/projects/[projectId]`) projects. Enforced secure routing: unauthenticated calls return `401`, mutations are owner-restricted (`ownerId === userId`) returning `403` on violation, and dynamically resolved dynamic parameter promises in compliance with Next.js 16 requirements. Verified build with zero TypeScript compiler or Turbopack errors.
 - 07-wire-editor-home.md: Wired the editor home interface, dynamic dynamic route project workspaces, and creation/deletion/renaming dialogs to the database API. Converted `app/editor/page.tsx` and created `app/editor/[projectId]/page.tsx` as Server Components that query project data directly using Prisma on load. Refactored the UI states into `app/editor/editor-client.tsx` Client Component. Created `hooks/use-project-actions.ts` to coordinate dialog state, random alphanumeric suffix generation, and fetch queries (POST, PATCH, DELETE), triggering page redirects or refreshes. Removed legacy `hooks/use-project-dialogs.ts` file. Verified build with zero errors.
-
-
-
+- 08-editor-workspace-shell.md: Implemented editor workspace shell `/editor/[roomId]` with server-side authentication and access checks. Created `lib/project-access.ts` helper and `components/editor/access-denied.tsx` fallback page. Replaced dynamic route `/editor/[projectId]` with `/editor/[roomId]`. Extended `components/editor/editor-navbar.tsx` to display the project name and provide share/AI assistant toggle buttons. Refactored `app/editor/editor-client.tsx` to handle the split workspace layout with canvas and AI sidebar panels. Successfully compiled production build with zero errors.
+- 09-share-dialog.md: Implemented the collaborative Share Dialog feature. Created a new API route `/api/projects/[projectId]/collaborators` supporting GET (listing enriched users via Clerk Backend SDK), POST (inviting users), and DELETE (removing users). Developed the `ShareDialog` component with premium workspace styling, rendering invite controls and collaborator management only for project owners while providing a read-only list for collaborators. Integrated the dialog state into `EditorClient` and connected the navbar Share button. Verified successful Next.js production build and TypeScript compilation.
 
 ## In Progress
 
-- None yet.
+- None.
 
 ## Next Up
 

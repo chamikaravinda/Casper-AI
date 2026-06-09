@@ -1,28 +1,48 @@
-"use client";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+import { EditorClient } from "./editor-client";
+import { Project } from "@/app/generated/prisma/client";
 
-import { useState } from "react";
-import { EditorNavbar } from "@/components/editor/editor-navbar";
-import { ProjectSidebar } from "@/components/editor/project-sidebar";
+export default async function EditorPage() {
+  const { userId } = await auth();
+  if (!userId) {
+    return null;
+  }
 
-export default function EditorPage() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const user = await currentUser();
+  const emails = user?.emailAddresses?.map((e) => e.emailAddress) || [];
+
+  const userProjects = await prisma.project.findMany({
+    where: {
+      OR: [
+        { ownerId: userId },
+        {
+          collaborators: {
+            some: {
+              email: { in: emails },
+            },
+          },
+        },
+      ],
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  const mappedProjects = userProjects.map((p: Project) => ({
+    id: p.id,
+    name: p.name,
+    isOwned: p.ownerId === userId,
+    description: p.description,
+    status: p.status,
+    canvasJsonPath: p.canvasJsonPath,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+    slug: p.id,
+  }));
 
   return (
-    <div className="flex h-screen flex-col bg-bg-base">
-      <EditorNavbar
-        isSidebarOpen={isSidebarOpen}
-        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-      />
-      <div className="relative flex flex-1 overflow-hidden">
-        <ProjectSidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-        />
-        {/* Canvas area — placeholder */}
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-text-muted">Canvas</p>
-        </div>
-      </div>
-    </div>
+    <EditorClient initialProjects={mappedProjects} activeProjectId={null} />
   );
 }

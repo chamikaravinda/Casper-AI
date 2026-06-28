@@ -10,9 +10,11 @@ import { ShareDialog } from "@/components/editor/share-dialog";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
 import { CanvasTemplate } from "@/components/editor/starter-templates";
 import { useProjectActions, Project } from "@/hooks/use-project-actions";
+import { SaveStatus } from "@/hooks/use-canvas-autosave";
 import { useRouter } from "next/navigation";
 import { CanvasWrapper } from "@/components/editor/canvas-wrapper";
 import { CollaborativeCanvas } from "@/components/editor/collaborative-canvas";
+import { AiSidebar } from "@/components/editor/ai-sidebar";
 import { cn } from "@/lib/utils";
 
 
@@ -30,6 +32,7 @@ export function EditorClient({
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const importTemplateRef = useRef<((template: CanvasTemplate) => void) | null>(null);
   const router = useRouter();
 
@@ -87,6 +90,7 @@ export function EditorClient({
         onToggleAiSidebar={() => setIsAiSidebarOpen((prev) => !prev)}
         onShareClick={() => setIsShareOpen(true)}
         onTemplatesClick={() => setIsTemplatesOpen(true)}
+        saveStatus={saveStatus}
       />
 
       <div className="relative flex flex-1 overflow-hidden">
@@ -108,36 +112,18 @@ export function EditorClient({
               {/* Central canvas area */}
               <div className="flex-1 relative overflow-hidden h-full z-10">
                 <CanvasWrapper roomId={activeProjectData.id}>
-                  <CollaborativeCanvas onImportTemplate={registerImportHandler} />
+                  <CollaborativeCanvas 
+                    projectId={activeProjectData.id} 
+                    onImportTemplate={registerImportHandler} 
+                    onSaveStatusChange={setSaveStatus}
+                  />
                 </CanvasWrapper>
               </div>
 
-              {/* Right sidebar for AI chat — floating overlay */}
-              <aside
-                className={cn(
-                  "fixed inset-y-3 right-3 top-[3.75rem] z-50 flex w-80 flex-col rounded-2xl border border-border-subtle bg-bg-surface/95 backdrop-blur-xl transition-transform duration-200",
-                  isAiSidebarOpen ? "translate-x-0" : "translate-x-[calc(100%+1rem)]"
-                )}
-              >
-                <div className="flex h-12 shrink-0 items-center justify-between border-b border-border-default px-4">
-                  <span className="text-sm font-medium text-text-primary">AI Assistant</span>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setIsAiSidebarOpen(false)}
-                    className="text-text-muted hover:text-text-primary"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                  <Sparkles className="h-8 w-8 text-accent-ai mb-3 animate-pulse" />
-                  <p className="text-sm font-medium text-text-primary mb-1">AI Chat Shell</p>
-                  <p className="text-xs text-text-muted max-w-[200px] leading-relaxed">
-                    AI-assisted architecture generation and refinements will be interactive here.
-                  </p>
-                </div>
-              </aside>
+              <AiSidebar
+                isOpen={isAiSidebarOpen}
+                onClose={() => setIsAiSidebarOpen(false)}
+              />
             </div>
           ) : (
             /* Editor Home Screen */

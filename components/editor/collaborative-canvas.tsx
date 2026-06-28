@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useCallback } from "react";
+import { useRef, useMemo, useCallback, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -22,6 +22,7 @@ import { CanvasTemplate } from "./starter-templates";
 import { PresenceAvatars } from "./presence-avatars";
 import { LiveCursors } from "./live-cursors";
 import { useMyPresence } from "@liveblocks/react";
+import { useCanvasAutosave, SaveStatus } from "@/hooks/use-canvas-autosave";
 
 import "@xyflow/react/dist/style.css";
 import "@liveblocks/react-ui/styles.css";
@@ -42,10 +43,12 @@ const DEFAULT_EDGE_OPTIONS = {
 };
 
 interface FlowCanvasProps {
+  projectId: string;
   onImportTemplate?: (handler: (template: CanvasTemplate) => void) => void;
+  onSaveStatusChange?: (status: SaveStatus) => void;
 }
 
-function FlowCanvas({ onImportTemplate }: FlowCanvasProps) {
+function FlowCanvas({ projectId, onImportTemplate, onSaveStatusChange }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const {
@@ -71,6 +74,42 @@ function FlowCanvas({ onImportTemplate }: FlowCanvasProps) {
   const redo = useRedo();
 
   const [, updateMyPresence] = useMyPresence();
+
+  // Autosave
+  const { status } = useCanvasAutosave(projectId, nodes, edges);
+  
+  useEffect(() => {
+    if (onSaveStatusChange) {
+      onSaveStatusChange(status);
+    }
+  }, [status, onSaveStatusChange]);
+
+  // Initial load
+  const hasLoadedRef = useRef(false);
+  useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+
+    // Only load if room is entirely empty
+    if (nodes.length === 0 && edges.length === 0) {
+      fetch(`/api/projects/${projectId}/canvas`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.nodes && data.nodes.length > 0) {
+            setNodes(data.nodes);
+            if (data.edges) {
+              setEdges(data.edges);
+            }
+            requestAnimationFrame(() => {
+              fitView({ duration: 400, padding: 0.15 });
+            });
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load initial canvas state:", err);
+        });
+    }
+  }, [projectId, nodes.length, edges.length, setNodes, setEdges, fitView]);
 
   // Wire keyboard shortcuts to the canvas instance and Liveblocks history
   useKeyboardShortcuts({ flowInstance: flow, onUndo: undo, onRedo: redo });
@@ -216,13 +255,15 @@ function FlowCanvas({ onImportTemplate }: FlowCanvasProps) {
 }
 
 interface CollaborativeCanvasProps {
+  projectId: string;
   onImportTemplate?: (handler: (template: CanvasTemplate) => void) => void;
+  onSaveStatusChange?: (status: SaveStatus) => void;
 }
 
-export function CollaborativeCanvas({ onImportTemplate }: CollaborativeCanvasProps) {
+export function CollaborativeCanvas({ projectId, onImportTemplate, onSaveStatusChange }: CollaborativeCanvasProps) {
   return (
     <ReactFlowProvider>
-      <FlowCanvas onImportTemplate={onImportTemplate} />
+      <FlowCanvas projectId={projectId} onImportTemplate={onImportTemplate} onSaveStatusChange={onSaveStatusChange} />
     </ReactFlowProvider>
   );
 }

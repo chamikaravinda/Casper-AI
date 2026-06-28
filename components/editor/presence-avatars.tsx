@@ -13,7 +13,7 @@ export function PresenceAvatars() {
 
   // Filter the Liveblocks presence list to exclude any entry whose user ID matches the current Clerk user ID
   // (e.g. if the user has multiple tabs open)
-  const collaborators = others.filter((other) => other.info?.id !== user.id);
+  const collaborators = others.filter((other) => other.id !== user.id);
 
   const visibleCollaborators = collaborators.slice(0, MAX_AVATARS);
   const overflowCount = collaborators.length - MAX_AVATARS;

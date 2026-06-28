@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles, LayoutTemplate } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles, LayoutTemplate, Cloud, Loader2, Check, CloudAlert } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { Button } from "../ui/button";
 
@@ -12,6 +12,7 @@ interface EditorNavbarProps {
   onToggleAiSidebar?: () => void;
   onShareClick?: () => void;
   onTemplatesClick?: () => void;
+  saveStatus?: "saving" | "saved" | "error" | "idle";
 }
 
 export function EditorNavbar({
@@ -22,6 +23,7 @@ export function EditorNavbar({
   onToggleAiSidebar,
   onShareClick,
   onTemplatesClick,
+  saveStatus = "idle",
 }: EditorNavbarProps) {
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border-default bg-bg-surface px-3">
@@ -61,6 +63,33 @@ export function EditorNavbar({
       <div className="flex items-center gap-2">
         {projectName && (
           <>
+            <div className="flex items-center gap-2 mr-2 text-xs text-text-secondary">
+              {saveStatus === "saving" && (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Saving...
+                </>
+              )}
+              {saveStatus === "saved" && (
+                <>
+                  <Check className="h-3.5 w-3.5 text-green-500" />
+                  Saved
+                </>
+              )}
+              {saveStatus === "error" && (
+                <>
+                  <CloudAlert className="h-3.5 w-3.5 text-red-500" />
+                  Save Error
+                </>
+              )}
+              {saveStatus === "idle" && (
+                <>
+                  <Cloud className="h-3.5 w-3.5" />
+                  Saved
+                </>
+              )}
+            </div>
+            
             <Button
               variant="outline"
               size="sm"

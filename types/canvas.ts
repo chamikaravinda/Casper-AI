@@ -11,6 +11,7 @@ export type NodeShape =
 export interface CanvasNodeData extends Record<string, unknown> {
   label: string;
   color?: string;
+  textColor?: string;
   shape?: NodeShape;
 }
 

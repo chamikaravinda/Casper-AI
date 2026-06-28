@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useCallback } from "react";
 import {
   ReactFlow,
   Background,
@@ -9,10 +9,19 @@ import {
   ConnectionMode,
   ReactFlowProvider,
   useReactFlow,
+  MarkerType,
 } from "@xyflow/react";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
+import { useUndo, useRedo } from "@liveblocks/react";
 import { CustomCanvasNode } from "./custom-node";
+import { CustomCanvasEdge } from "./custom-edge";
 import { ShapePanel } from "./shape-panel";
+import { CanvasControls } from "./canvas-controls";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { CanvasTemplate } from "./starter-templates";
+import { PresenceAvatars } from "./presence-avatars";
+import { LiveCursors } from "./live-cursors";
+import { useMyPresence } from "@liveblocks/react";
 
 import "@xyflow/react/dist/style.css";
 import "@liveblocks/react-ui/styles.css";
@@ -21,7 +30,22 @@ import "@liveblocks/react-flow/styles.css";
 // Counter for generating unique node IDs
 let nodeCounter = 0;
 
-function FlowCanvas() {
+// Default options applied to every new edge connection
+const DEFAULT_EDGE_OPTIONS = {
+  type: "canvasEdge",
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    color: "rgba(248, 250, 252, 0.35)",
+    width: 16,
+    height: 16,
+  },
+};
+
+interface FlowCanvasProps {
+  onImportTemplate?: (handler: (template: CanvasTemplate) => void) => void;
+}
+
+function FlowCanvas({ onImportTemplate }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const {
@@ -40,7 +64,34 @@ function FlowCanvas() {
     },
   });
 
-  const { setNodes, screenToFlowPosition } = useReactFlow();
+  const flow = useReactFlow();
+  const { setNodes, setEdges, screenToFlowPosition, fitView } = flow;
+
+  const undo = useUndo();
+  const redo = useRedo();
+
+  const [, updateMyPresence] = useMyPresence();
+
+  // Wire keyboard shortcuts to the canvas instance and Liveblocks history
+  useKeyboardShortcuts({ flowInstance: flow, onUndo: undo, onRedo: redo });
+
+  // Expose a stable import handler to the parent via callback ref pattern
+  const handleImportTemplate = useCallback(
+    (template: CanvasTemplate) => {
+      setNodes(template.nodes);
+      setEdges(template.edges);
+      // Give React Flow one frame to render nodes before fitting
+      requestAnimationFrame(() => {
+        fitView({ duration: 400, padding: 0.15 });
+      });
+    },
+    [setNodes, setEdges, fitView]
+  );
+
+  // Register the handler with the parent when it mounts or changes
+  if (onImportTemplate) {
+    onImportTemplate(handleImportTemplate);
+  }
 
   // Register custom node renderers
   const nodeTypes = useMemo(
@@ -50,9 +101,32 @@ function FlowCanvas() {
     []
   );
 
+  // Register custom edge renderers
+  const edgeTypes = useMemo(
+    () => ({
+      canvasEdge: CustomCanvasEdge,
+    }),
+    []
+  );
+
   const onDragOver = (event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!reactFlowWrapper.current) return;
+    const bounds = reactFlowWrapper.current.getBoundingClientRect();
+    updateMyPresence({
+      cursor: {
+        x: Math.round(e.clientX - bounds.left),
+        y: Math.round(e.clientY - bounds.top),
+      },
+    });
+  };
+
+  const handlePointerLeave = () => {
+    updateMyPresence({ cursor: null });
   };
 
   const onDrop = (event: React.DragEvent) => {
@@ -103,7 +177,11 @@ function FlowCanvas() {
       className="h-full w-full relative bg-bg-base animate-fade-in"
       onDragOver={onDragOver}
       onDrop={onDrop}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
     >
+      <PresenceAvatars />
+      <LiveCursors />
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -111,6 +189,8 @@ function FlowCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
         fitView
         connectionMode={ConnectionMode.Loose}
       >
@@ -126,16 +206,23 @@ function FlowCanvas() {
         />
       </ReactFlow>
 
-      {/* Floating bottom shape panel */}
+      {/* Floating bottom-left control bar */}
+      <CanvasControls />
+
+      {/* Floating bottom-center shape panel */}
       <ShapePanel />
     </div>
   );
 }
 
-export function CollaborativeCanvas() {
+interface CollaborativeCanvasProps {
+  onImportTemplate?: (handler: (template: CanvasTemplate) => void) => void;
+}
+
+export function CollaborativeCanvas({ onImportTemplate }: CollaborativeCanvasProps) {
   return (
     <ReactFlowProvider>
-      <FlowCanvas />
+      <FlowCanvas onImportTemplate={onImportTemplate} />
     </ReactFlowProvider>
   );
 }

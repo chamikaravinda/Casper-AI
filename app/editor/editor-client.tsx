@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Plus, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ShareDialog } from "@/components/editor/share-dialog";
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import { CanvasTemplate } from "@/components/editor/starter-templates";
 import { useProjectActions, Project } from "@/hooks/use-project-actions";
 import { useRouter } from "next/navigation";
 import { CanvasWrapper } from "@/components/editor/canvas-wrapper";
@@ -27,7 +29,21 @@ export function EditorClient({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const importTemplateRef = useRef<((template: CanvasTemplate) => void) | null>(null);
   const router = useRouter();
+
+  // Callback the canvas passes back its import handler
+  const registerImportHandler = useCallback(
+    (handler: (template: CanvasTemplate) => void) => {
+      importTemplateRef.current = handler;
+    },
+    []
+  );
+
+  const handleImportTemplate = useCallback((template: CanvasTemplate) => {
+    importTemplateRef.current?.(template);
+  }, []);
 
   const {
     dialogType,
@@ -70,6 +86,7 @@ export function EditorClient({
         isAiSidebarOpen={isAiSidebarOpen}
         onToggleAiSidebar={() => setIsAiSidebarOpen((prev) => !prev)}
         onShareClick={() => setIsShareOpen(true)}
+        onTemplatesClick={() => setIsTemplatesOpen(true)}
       />
 
       <div className="relative flex flex-1 overflow-hidden">
@@ -91,7 +108,7 @@ export function EditorClient({
               {/* Central canvas area */}
               <div className="flex-1 relative overflow-hidden h-full z-10">
                 <CanvasWrapper roomId={activeProjectData.id}>
-                  <CollaborativeCanvas />
+                  <CollaborativeCanvas onImportTemplate={registerImportHandler} />
                 </CanvasWrapper>
               </div>
 
@@ -166,6 +183,12 @@ export function EditorClient({
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
         projectId={activeProjectId}
+      />
+
+      <StarterTemplatesModal
+        isOpen={isTemplatesOpen}
+        onClose={() => setIsTemplatesOpen(false)}
+        onImport={handleImportTemplate}
       />
     </div>
   );

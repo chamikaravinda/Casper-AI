@@ -1,14 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Plus, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ShareDialog } from "@/components/editor/share-dialog";
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import { CanvasTemplate } from "@/components/editor/starter-templates";
 import { useProjectActions, Project } from "@/hooks/use-project-actions";
 import { useRouter } from "next/navigation";
+import { CanvasWrapper } from "@/components/editor/canvas-wrapper";
+import { CollaborativeCanvas } from "@/components/editor/collaborative-canvas";
+import { cn } from "@/lib/utils";
+
+
 
 interface EditorClientProps {
   initialProjects: Project[];
@@ -22,7 +29,21 @@ export function EditorClient({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const importTemplateRef = useRef<((template: CanvasTemplate) => void) | null>(null);
   const router = useRouter();
+
+  // Callback the canvas passes back its import handler
+  const registerImportHandler = useCallback(
+    (handler: (template: CanvasTemplate) => void) => {
+      importTemplateRef.current = handler;
+    },
+    []
+  );
+
+  const handleImportTemplate = useCallback((template: CanvasTemplate) => {
+    importTemplateRef.current?.(template);
+  }, []);
 
   const {
     dialogType,
@@ -65,6 +86,7 @@ export function EditorClient({
         isAiSidebarOpen={isAiSidebarOpen}
         onToggleAiSidebar={() => setIsAiSidebarOpen((prev) => !prev)}
         onShareClick={() => setIsShareOpen(true)}
+        onTemplatesClick={() => setIsTemplatesOpen(true)}
       />
 
       <div className="relative flex flex-1 overflow-hidden">
@@ -84,48 +106,38 @@ export function EditorClient({
           {activeProjectData ? (
             <div className="flex flex-1 relative overflow-hidden h-full">
               {/* Central canvas area */}
-              <div className="flex-1 flex flex-col items-center justify-center bg-bg-base relative overflow-hidden h-full z-10">
-                <div className="space-y-4 max-w-lg text-center p-6">
-                  <span className="text-xs uppercase tracking-widest text-accent-primary font-mono bg-accent-primary-dim px-2.5 py-1 rounded-full border border-accent-primary/20">
-                    Room: {activeProjectData.slug}
-                  </span>
-                  <h2 className="text-2xl font-semibold text-text-primary tracking-tight mt-2">
-                    {activeProjectData.name}
-                  </h2>
-                  <p className="text-sm text-text-muted">
-                    Real-time collaborative canvas will load here. Edit the system components or trigger AI generation.
-                  </p>
-                  <div className="pt-4 flex items-center justify-center">
-                    <div className="border border-dashed border-border-default rounded-xl p-8 bg-bg-surface/50 text-xs text-text-faint font-mono">
-                      [ React Flow + Liveblocks Canvas Placement ]
-                    </div>
-                  </div>
-                </div>
+              <div className="flex-1 relative overflow-hidden h-full z-10">
+                <CanvasWrapper roomId={activeProjectData.id}>
+                  <CollaborativeCanvas onImportTemplate={registerImportHandler} />
+                </CanvasWrapper>
               </div>
 
-              {/* Right sidebar placeholder for AI chat */}
-              {isAiSidebarOpen && (
-                <aside className="w-80 shrink-0 border-l border-border-default bg-bg-surface flex flex-col z-20 h-full relative">
-                  <div className="flex h-12 shrink-0 items-center justify-between border-b border-border-default px-4">
-                    <span className="text-sm font-medium text-text-primary">AI Assistant</span>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setIsAiSidebarOpen(false)}
-                      className="text-text-muted hover:text-text-primary"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                    <Sparkles className="h-8 w-8 text-accent-ai mb-3 animate-pulse" />
-                    <p className="text-sm font-medium text-text-primary mb-1">AI Chat Shell</p>
-                    <p className="text-xs text-text-muted max-w-[200px] leading-relaxed">
-                      AI-assisted architecture generation and refinements will be interactive here.
-                    </p>
-                  </div>
-                </aside>
-              )}
+              {/* Right sidebar for AI chat — floating overlay */}
+              <aside
+                className={cn(
+                  "fixed inset-y-3 right-3 top-[3.75rem] z-50 flex w-80 flex-col rounded-2xl border border-border-subtle bg-bg-surface/95 backdrop-blur-xl transition-transform duration-200",
+                  isAiSidebarOpen ? "translate-x-0" : "translate-x-[calc(100%+1rem)]"
+                )}
+              >
+                <div className="flex h-12 shrink-0 items-center justify-between border-b border-border-default px-4">
+                  <span className="text-sm font-medium text-text-primary">AI Assistant</span>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setIsAiSidebarOpen(false)}
+                    className="text-text-muted hover:text-text-primary"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                  <Sparkles className="h-8 w-8 text-accent-ai mb-3 animate-pulse" />
+                  <p className="text-sm font-medium text-text-primary mb-1">AI Chat Shell</p>
+                  <p className="text-xs text-text-muted max-w-[200px] leading-relaxed">
+                    AI-assisted architecture generation and refinements will be interactive here.
+                  </p>
+                </div>
+              </aside>
             </div>
           ) : (
             /* Editor Home Screen */
@@ -171,6 +183,12 @@ export function EditorClient({
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
         projectId={activeProjectId}
+      />
+
+      <StarterTemplatesModal
+        isOpen={isTemplatesOpen}
+        onClose={() => setIsTemplatesOpen(false)}
+        onImport={handleImportTemplate}
       />
     </div>
   );
